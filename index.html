@@ -61,11 +61,23 @@
         <p>Vui lòng đợi trong giây lát để hệ thống chuẩn bị liên kết...</p>
         <div id="countdown">5</div>
         
-        <!-- Thay link bên dưới thành link rút gọn kiếm tiền của mày (hoặc link đích) -->
-        <a id="getLinkBtn" class="btn" href="https://link4m.com/LinkCuaMay" target="_blank">NHẬN KEY NGAY</a>
+        <!-- Nút nhận key, link sẽ được JS tự động điền vào -->
+        <a id="getLinkBtn" class="btn" href="#" target="_blank">NHẬN KEY NGAY</a>
     </div>
 
     <script>
+        // Danh sách các link kiếm tiền của mày (Link4m, Gtraffic, Bumx, v.v.)
+        const listLinks = [
+            "https://link4m.com/LinkSo1CuaMay",
+            "https://gtraffic.co/LinkSo2CuaMay",
+            "https://bumx.vn/LinkSo3CuaMay",
+            // Thêm bao nhiêu link tùy thích ở đây
+        ];
+
+        // Tự động chọn ngẫu nhiên 1 link trong mảng trên khi người dùng mở trang
+        const randomLink = listLinks[Math.floor(Math.random() * listLinks.length)];
+        document.getElementById('getLinkBtn').href = randomLink;
+
         let timeLeft = 5;
         const countdownEl = document.getElementById('countdown');
         const btnEl = document.getElementById('getLinkBtn');
