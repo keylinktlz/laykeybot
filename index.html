@@ -16,9 +16,8 @@
 
 <div class="card">
     <h2>Xác Minh Vượt Link</h2>
-    <p>Vui lòng đợi đếm ngược kết thúc để nhận +1 Coin vào Telegram!</p>
-    
-    <div class="timer" id="timer">Vui lòng đợi 15 giây...</div>
+    <p>Vui lòng đợi 5 giây để nhận +1 Coin vào Telegram!</p>
+    <div class="timer" id="timer">Vui lòng đợi 5 giây...</div>
     <button class="btn" id="claimBtn" onclick="sendReward()">🎁 BẤM ĐỂ NHẬN +1 COIN</button>
 </div>
 
@@ -27,15 +26,13 @@
     const urlParams = new URLSearchParams(window.location.search);
     const userId = urlParams.get('id');
 
-    // 2. Điền thông tin Bot của bạn ở đây
-    const BOT_TOKEN = 'NHẬP_BOT_TOKEN_CỦA_BẠN'; // Token từ BotFather
-    const RENDER_API_URL = 'https://tên-app-của-bạn.onrender.com/api/verify'; // URL Render của bạn
+    // 2. ĐIỀN TOKEN BOT CỦA ÔNG VÀO ĐÂY
+    const BOT_TOKEN = '9001402578:AAFr0uRt9VnpngXyUTlSsqqchvNtuBqL9GQ';
 
-    let timeLeft = 15; // Số giây bắt buộc phải đợi
+    let timeLeft = 5; // Đã đổi thành 5 giây theo ý ông
     const timerElem = document.getElementById('timer');
     const claimBtn = document.getElementById('claimBtn');
 
-    // Đếm ngược thời gian trên trang web
     const countdown = setInterval(() => {
         timeLeft--;
         if (timeLeft > 0) {
@@ -47,7 +44,7 @@
         }
     }, 1000);
 
-    // 3. Khi bấm nhận, gọi ngầm về Server Render để cộng coin
+    // 3. Web tự gọi thẳng Telegram API để gửi tin nhắn cộng coin cho user
     async function sendReward() {
         if (!userId) {
             alert("Lỗi: Không tìm thấy Telegram ID!");
@@ -58,17 +55,21 @@
         claimBtn.innerText = "⏳ Đang xử lý...";
 
         try {
-            const res = await fetch(`${RENDER_API_URL}?id=${userId}`);
+            // Nội dung tin nhắn bot sẽ gửi về cho user
+            const message = "🎉 XÁC MINH THÀNH CÔNG!\n🎁 Bạn đã nhận được +1 Coin từ hệ thống.";
+            const telegramUrl = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${userId}&text=${encodeURIComponent(message)}\`;
+
+            const res = await fetch(telegramUrl);
             const data = await res.json();
-            
-            if (data.success) {
-                alert("🎉 +1 Coin đã được cộng vào Telegram của bạn! Hãy quay lại bot kiểm tra.");
-                window.location.href = "https://t.me/tlzlike_bot"; // Chuyển về bot
+            if (data.ok) {
+                alert("🎉 +1 Coin đã được cộng! Hãy quay lại Telegram kiểm tra tin nhắn từ bot.");
+                window.location.href = "https://t.me/tlzlike_bot"; // Chuyển về lại bot
             } else {
-                alert("⚠️ " + data.message);
+                alert("⚠️ Có lỗi khi cộng coin, vui lòng thử lại!");
+                claimBtn.disabled = false;
             }
         } catch (err) {
-            alert("❌ Có lỗi xảy ra, vui lòng thử lại!");
+            alert("❌ Lỗi kết nối!");
             claimBtn.disabled = false;
         }
     }
