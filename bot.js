@@ -328,3 +328,13 @@ bot.command('addcoin', async (ctx) => {
 
 bot.launch();
 console.log("Bot Telegram chạy 100% JS đã khởi động thành công!");
+// Thêm đoạn này vào cuối file bot.js để lừa Render mở cổng web ảo
+const http = require('http');
+const PORT = process.env.PORT || 3000;
+http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('Bot is running smooth!\n');
+}).listen(PORT, () => {
+    console.log(`Web server is listening on port ${PORT}`);
+});
+
