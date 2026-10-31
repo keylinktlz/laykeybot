@@ -3,18 +3,9 @@ const { Telegraf, Markup } = require('telegraf');
 // ==================== CẤU HÌNH THÔNG TIN ====================
 const BOT_TOKEN = '9001402578:AAFr0uRt9VnpngXyUTlSsqqchvNtuBqL9GQ'; // Thay token mới của bạn vào đây
 const ADMIN_ID = 7827755950; // Telegram User ID thực tế của bạn
+const GITHUB_WEB_URL = 'https://laykeybot.github.io/laykeybot/'; // Link trang web GitHub Pages của mày
 
 const bot = new Telegraf(BOT_TOKEN);
-
-// Danh sách 6 liên kết rút gọn tương ứng với tối đa 6 lần vượt link trong ngày
-const LINK_RUT_GON = [
-    'https://gtraffic.io/D6rV4GQ', // Lần 1/6
-    'https://linkfree.click/s/key-botz1u19xrmvvo09pl', // Lần 2/6
-    'https://link4m.net/ASVrwNuc', // Lần 3/6
-    'https://gtraffic.io/Oj4z6QF', // Lần 4/6
-    'https://gtraffic.io/FpAE6QO', // Lần 5/6
-    'https://videotiktoker.com/s/key-botz1u19xrmvvo8yr4'  // Lần 6/6
-];
 
 // Bộ nhớ tạm lưu trữ thông tin người dùng và danh sách các đơn buff đang chờ duyệt
 const users = new Map(); // userID -> { coin, status, activeKey, keyCreatedAt, step }
@@ -55,9 +46,9 @@ function generateRandomCode() {
 bot.start(async (ctx) => {
     const userId = ctx.from.id;
     const userData = getUserData(userId);
-    const payload = ctx.startPayload; // Lấy mã key gửi từ link (ví dụ: ?start=KEY_XYZ)
+    const payload = ctx.startPayload; // Lấy mã key gửi từ link GitHub trả về
 
-    // --- XÁC MINH VƯỢT LINK TRẢ VỀ ---
+    // --- XÁC MINH VƯỢT LINK TRẢ VỀ TỪ WEB GITHUB ---
     if (payload) {
         if (userData.activeKey && payload === userData.activeKey && userData.step < 6) {
             userData.status = '🟢';
@@ -100,7 +91,7 @@ bot.start(async (ctx) => {
     ctx.reply(menuText, { parse_mode: 'Markdown' });
 });
 
-// 2. Lệnh /getkey - Gửi link vượt key (Chặn tuyệt đối nếu > 6 lần/ngày)
+// 2. Lệnh /getkey - Gửi trang Web GitHub kèm Token để user vượt link
 bot.command('getkey', (ctx) => {
     const userId = ctx.from.id;
     const userData = getUserData(userId);
@@ -121,31 +112,30 @@ bot.command('getkey', (ctx) => {
     }
 
     const currentStep = userData.step;
-    const currentLink = LINK_RUT_GON[currentStep];
     const newKey = generateRandomCode();
-
     userData.activeKey = newKey;
 
+    // Tạo link trỏ sang web GitHub và nhét key độc quyền vào query params
+    const webRedirectLink = `${GITHUB_WEB_URL}?key=${newKey}`;
+
     const message =
-        `🔗 **LINK LẤY KEY NHẬN COIN (Lần ${currentStep + 1}/6)**\n\n` +
+        `🔗 **TRANG XÁC THỰC LẤY KEY (Lần ${currentStep + 1}/6)**\n\n` +
         `👉 **Tài khoản:** ${userName}\n` +
-        `👉 **Link của bạn:** ${currentLink}\n\n` +
-        `⚠️ **Lưu ý:**\n` +
-        `• Sau khi vượt link xong, hệ thống sẽ tự động chuyển về Telegram và cộng **+1 Coin**.\n` +
-        `• Tiến trình hiện tại: **${currentStep}/6**`;
+        `👉 **Tiến trình:** ${currentStep}/6\n\n` +
+        `⚠️ **Hướng dẫn:** Bấm nút bên dưới để vào trang web đếm ngược, vượt link rút gọn để nhận coin tự động nhé!`;
 
     ctx.reply(message, {
         parse_mode: 'Markdown',
         reply_markup: {
             inline_keyboard: [
-                [{ text: "🌐 Mở Link Vượt Key", url: currentLink }],
-                [{ text: "🔄 Đổi Link Khác", callback_data: "doi_link" }]
+                [{ text: "🌐 Mở Web Lấy Key (5s)", url: webRedirectLink }],
+                [{ text: "🔄 Lấy Link Mới", callback_data: "doi_link" }]
             ]
         }
     });
 });
 
-// Nút bấm Đổi link dự phòng
+// Nút bấm Lấy Link Mới dự phòng
 bot.action('doi_link', async (ctx) => {
     await ctx.answerCbQuery();
     const userId = ctx.from.id;
@@ -154,12 +144,19 @@ bot.action('doi_link', async (ctx) => {
 
     const newKey = generateRandomCode();
     userData.activeKey = newKey;
+    const webRedirectLink = `${GITHUB_WEB_URL}?key=${newKey}`;
 
     await ctx.reply(
-        `🔄 **ĐÃ ĐỔI LINK MỚI (Lần ${userData.step + 1}/6)!**\n\n` +
-        `👉 **Link:** ${LINK_RUT_GON[userData.step]}\n` +
-        `📌 Hãy bấm vào nút Mở link bên trên để tiến hành vượt lại nhé!`,
-        { parse_mode: 'Markdown' }
+        `🔄 **ĐÃ TẠO LINK XÁC THỰC MỚI (Lần ${userData.step + 1}/6)!**\n\n` +
+        `📌 Hãy bấm vào nút bên dưới để mở trang web vượt link nhé!`,
+        {
+            parse_mode: 'Markdown',
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: "🌐 Mở Web Lấy Key (5s)", url: webRedirectLink }]
+                ]
+            }
+        }
     );
 });
 
@@ -328,7 +325,8 @@ bot.command('addcoin', async (ctx) => {
 
 bot.launch();
 console.log("Bot Telegram chạy 100% JS đã khởi động thành công!");
-// Thêm đoạn này vào cuối file bot.js để lừa Render mở cổng web ảo
+
+// Mở cổng web ảo trên Render
 const http = require('http');
 const PORT = process.env.PORT || 3000;
 http.createServer((req, res) => {
@@ -337,4 +335,3 @@ http.createServer((req, res) => {
 }).listen(PORT, () => {
     console.log(`Web server is listening on port ${PORT}`);
 });
-
