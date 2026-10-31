@@ -57,13 +57,13 @@
             background-color: #16a34a;
         }
         .key-box {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: bold;
             color: #22c55e;
             background: #0f172a;
             border: 2px dashed #22c55e;
-            padding: 15px;
-            margin: 20px 0;
+            padding: 12px;
+            margin: 15px 0;
             border-radius: 8px;
             word-break: break-all;
         }
@@ -71,12 +71,10 @@
 </head>
 <body>
 
-    <div class="container" id="mainCard">
-        <!-- Nội dung sẽ tự động thay đổi bằng JS -->
-    </div>
+    <div class="container" id="mainCard"></div>
 
     <script>
-        // Danh sách 6 link rút gọn của mày
+        // Danh sách link rút gọn thực tế của mày (đảm bảo link đang sống và không bị lỗi 404)
         const listLinks = [
             "https://link4m.org/RJWQ2YVy",
             "https://linkfree.click/s/key-nv2z1u19xrmvw898dc",
@@ -86,41 +84,39 @@
             "https://gtraffic.io/dm6PKQH"
         ];
 
-        // Lấy mã key từ bot truyền sang URL
         const urlParams = new URLSearchParams(window.location.search);
         const userKey = urlParams.get('key');
         const isDone = urlParams.get('status') === 'done';
-
         const mainCard = document.getElementById('mainCard');
 
         if (isDone && userKey) {
-            // === KHI VƯỢT LINK XONG -> TỰ ĐỘNG CHUYỂN VỀ BOT `tlzlike_bot` ===
+            // Khi khách hoàn thành vượt link và quay về
             mainCard.innerHTML = `
-                <h2 style="color: #22c55e;">🎉 VƯỢT LINK THÀNH CÔNG!</h2>
-                <p>Hệ thống đang tự động chuyển bạn về lại Telegram để cộng Coin...</p>
+                <h2 style="color: #22c55e;">🎉 XÁC THỰC THÀNH CÔNG!</h2>
+                <p>Đang tự động chuyển hướng về Telegram để cộng Coin...</p>
                 <div class="key-box">${userKey}</div>
-                <a href="https://t.me/tlzlike_bot?start=${userKey}" class="btn">🚀 BẤM ĐỂ NHẬN COIN NGAY</a>
+                <a href="https://t.me/tlzlike_bot?start=${userKey}" class="btn">🚀 VỀ BOT NGAY</a>
             `;
-            
-            // Tự động đá về bot sau 1.5 giây
             setTimeout(() => {
                 window.location.href = `https://t.me/tlzlike_bot?start=${userKey}`;
-            }, 1500);
+            }, 1200);
 
         } else {
-            // === MỚI BẤM VÀO WEB -> ĐẾM NGƯỢC 5S & CHỌN LINK RÚT GỌN ===
+            // Kiểm tra key từ bot truyền sang
             if (!userKey) {
-                mainCard.innerHTML = `<h2>Lỗi!</h2><p>Vui lòng lấy link từ bot Telegram để xác thực.</p>`;
-                throw new Error("Missing user key");
+                mainCard.innerHTML = `<h2>Lỗi!</h2><p>Vui lòng lấy link trực tiếp từ bot Telegram.</p>`;
+                throw new Error("Missing key");
             }
 
+            // Giao diện đếm ngược 5 giây trước khi hiện nút chuyển hướng sang Link4m/Gtraffic
             mainCard.innerHTML = `
                 <h2>Xác Thực Lấy Key</h2>
-                <p id="subText">Vui lòng đợi trong giây lát để hệ thống chuẩn bị liên kết...</p>
+                <p id="subText">Hệ thống đang chuẩn bị liên kết vượt link cho bạn...</p>
                 <div id="countdown">5</div>
-                <a id="getLinkBtn" class="btn" style="display: none;" href="#" target="_blank">NHẬN LINK VƯỢT NGAY</a>
+                <a id="getLinkBtn" class="btn" style="display: none;" href="#" target="_blank">👉 BẤM ĐỂ ĐẾN TRANG VƯỢT LINK</a>
             `;
 
+            // Chọn ngẫu nhiên 1 link trong danh sách
             const randomLink = listLinks[Math.floor(Math.random() * listLinks.length)];
             const btnEl = document.getElementById('getLinkBtn');
             btnEl.href = randomLink;
@@ -135,12 +131,11 @@
                 if (timeLeft <= 0) {
                     clearInterval(timer);
                     countdownEl.style.display = 'none';
-                    document.getElementById('subText').textContent = 'Đã hoàn tất! Bấm nút bên dưới để tiếp tục vượt link:';
+                    document.getElementById('subText').textContent = 'Đã sẵn sàng! Nhấn nút bên dưới để bắt đầu vượt link:';
                     btnEl.style.display = 'inline-block';
                 }
             }, 1000);
         }
     </script>
-
 </body>
 </html>
