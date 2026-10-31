@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xác minh vượt link nhận coin</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 50px 20px; background: #f4f4f9; }
+        .card { background: white; max-width: 400px; margin: auto; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h2 { color: #333; }
+        .btn { background: #0088cc; color: white; border: none; padding: 12px 24px; font-size: 16px; border-radius: 6px; cursor: pointer; display: none; text-decoration: none; }
+        .timer { font-size: 24px; font-weight: bold; color: #d9534f; margin: 20px 0; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>Xác Minh Vượt Link</h2>
+    <p>Vui lòng đợi đếm ngược kết thúc để nhận +1 Coin vào Telegram!</p>
+    
+    <div class="timer" id="timer">Vui lòng đợi 15 giây...</div>
+    <button class="btn" id="claimBtn" onclick="sendReward()">🎁 BẤM ĐỂ NHẬN +1 COIN</button>
+</div>
+
+<script>
+    // 1. Lấy Telegram ID từ URL (dạng: ?id=12345678)
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('id');
+
+    // 2. Điền thông tin Bot của bạn ở đây
+    const BOT_TOKEN = 'NHẬP_BOT_TOKEN_CỦA_BẠN'; // Token từ BotFather
+    const RENDER_API_URL = 'https://tên-app-của-bạn.onrender.com/api/verify'; // URL Render của bạn
+
+    let timeLeft = 15; // Số giây bắt buộc phải đợi
+    const timerElem = document.getElementById('timer');
+    const claimBtn = document.getElementById('claimBtn');
+
+    // Đếm ngược thời gian trên trang web
+    const countdown = setInterval(() => {
+        timeLeft--;
+        if (timeLeft > 0) {
+            timerElem.innerText = `Vui lòng đợi ${timeLeft} giây...`;
+        } else {
+            clearInterval(countdown);
+            timerElem.innerText = "✅ Bạn đã đủ điều kiện nhận Coin!";
+            claimBtn.style.display = 'inline-block';
+        }
+    }, 1000);
+
+    // 3. Khi bấm nhận, gọi ngầm về Server Render để cộng coin
+    async function sendReward() {
+        if (!userId) {
+            alert("Lỗi: Không tìm thấy Telegram ID!");
+            return;
+        }
+
+        claimBtn.disabled = true;
+        claimBtn.innerText = "⏳ Đang xử lý...";
+
+        try {
+            const res = await fetch(`${RENDER_API_URL}?id=${userId}`);
+            const data = await res.json();
+            
+            if (data.success) {
+                alert("🎉 +1 Coin đã được cộng vào Telegram của bạn! Hãy quay lại bot kiểm tra.");
+                window.location.href = "https://t.me/tlzlike_bot"; // Chuyển về bot
+            } else {
+                alert("⚠️ " + data.message);
+            }
+        } catch (err) {
+            alert("❌ Có lỗi xảy ra, vui lòng thử lại!");
+            claimBtn.disabled = false;
+        }
+    }
+</script>
+
+</body>
+</html>
