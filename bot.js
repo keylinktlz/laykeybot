@@ -6,12 +6,12 @@ const ADMIN_ID = 7827755950; // Telegram User ID của mày
 
 // Danh sách các link rút gọn (Link4m / Linkfree / Gtraffic)
 const listShortLinks = [
-    "https://link4m.org/dzhras",
+    "https://link4m.net/sb6B7",
             "https://linkfree.click/s/keynewbotz1u1h36mvxi47e6",
             "https://linkfree.click/s/keynewbotz1u1h36mvxi47e6",
             "https://linkfree.click/s/keynewbotz1u1h36mvxi47e6",
-            "https://gtraffic.io/3eM3Q86",
-            "https://gtraffic.io/31V67QM"
+            "https://gtraffic.io/5QAMO6f",
+            "https://gtraffic.io/5MV6Qhk"
 ];
 
 const bot = new Telegraf(BOT_TOKEN);
