@@ -1,21 +1,11 @@
 const { Telegraf } = require('telegraf');
+const axios = require('axios');
 
-// ==================== CẤU HÌNH THÔNG TIN ====================
-const BOT_TOKEN = '9001402578:AAFr0uRt9VnpngXyUTlSsqqchvNtuBqL9GQ'; // Thay token bot của mày vào đây
-const ADMIN_ID = 7827755950; // Telegram User ID của mày
-
-// Danh sách các link rút gọn (Link4m / Linkfree / Gtraffic)
-const listShortLinks = [
-    "https://link4m.net/sb6B7",
-            "https://linkfree.click/s/keynewbotz1u1h36mvxi47e6",
-            "https://linkfree.click/s/keynewbotz1u1h36mvxi47e6",
-            "https://linkfree.click/s/keynewbotz1u1h36mvxi47e6",
-            "https://gtraffic.io/5QAMO6f",
-            "https://gtraffic.io/5MV6Qhk"
-];
+const BOT_TOKEN = "9001402578:AAFr0uRt9VnpngXyUTlSsqqchvNtuBqL9GQ"; // Thay token bot của mày vào đây
+const ADMIN_ID = 782775950; // Telegram User ID của mày
+const GAS_URL = "https://script.google.com/macros/s/AKfycbyLs0JbLy82nCIuIXXmTZUIih6QNw43u9nyWHAPCGzH-AxuXhKgEV2vuAuHalkjI9GS/exec"; // Thay URL GAS của mày vào đây
 
 const bot = new Telegraf(BOT_TOKEN);
-
 const users = new Map();
 const pendingBuffs = new Map();
 
@@ -24,57 +14,26 @@ function getUserData(userId) {
         users.set(userId, {
             coin: 0,
             status: '🔴',
-            activeKey: null,
-            keyCreatedAt: null,
             step: 0
         });
     }
-    const data = users.get(userId);
+    return users.get(userId);
+}
 
-    if (data.keyCreatedAt && (Date.now() - data.keyCreatedAt > 24 * 60 * 60 * 1000)) {
-        data.status = '🔴';
-        data.activeKey = null;
-        data.keyCreatedAt = null;
-        data.step = 0;
+// Hàm tạo Key random ngẫu nhiên
+function generateRandomKey() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = 'TLZ-';
+    for (let i = 0; i < 6; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
-
-    return data;
+    return result;
 }
 
-function generateRandomCode() {
-    return 'KEY-' + Math.random().toString(36).substring(2, 10).toUpperCase();
-}
-
-// 1. Lệnh /start (Hỗ trợ xác thực tự động qua Deep Linking)
-bot.start(async (ctx) => {
+// 1. Lệnh /start
+bot.start((ctx) => {
     const userId = ctx.from.id;
     const userData = getUserData(userId);
-    const payload = ctx.startPayload;
-
-    if (payload) {
-        if (userData.activeKey && payload.toUpperCase() === userData.activeKey.toUpperCase() && userData.step < 6) {
-            userData.status = '🟢';
-            userData.coin += 1; 
-            userData.activeKey = null; 
-            userData.step += 1; 
-            const completedStep = userData.step;
-
-            let nextStepInfo = completedStep < 6
-                ? `💡 *Tiến trình hiện tại: ${completedStep}/6. Gõ /getkey để lấy link tiếp theo.*`
-                : `🎉 **CHÚC MỪNG! Bạn đã hoàn thành tối đa 6/6 lần trong ngày hôm nay!**`;
-
-            return ctx.reply(
-                `🎉 **XÁC MINH THÀNH CÔNG (Lần ${completedStep}/6)!**\n\n` +
-                `🟢 Trạng thái: **Đã vượt link**\n` +
-                `🎁 Thưởng: **+1 Coin**\n` +
-                `💰 Tổng Coin: **${userData.coin}** Coin\n\n` +
-                nextStepInfo,
-                { parse_mode: 'Markdown' }
-            );
-        } else {
-            return ctx.reply("❌ Mã Key xác minh không hợp lệ hoặc đã được sử dụng!");
-        }
-    }
 
     let menuText =
         `👋 Chào mừng **${ctx.from.first_name}** đến với hệ thống!\n\n` +
@@ -82,290 +41,133 @@ bot.start(async (ctx) => {
         `📊 Tiến trình hôm nay: **${userData.step}/6 lần**\n` +
         `💰 Số Coin hiện có: **${userData.coin}** Coin\n\n` +
         `📜 **Danh sách lệnh:**\n` +
-        `• \`/getkey\` : Lấy link vượt để nhận coin (Tối đa 6 lần/ngày)\n` +
+        `• \`/getkey\` : Lấy mã key vượt link nhận coin\n` +
         `• \`/nhapkey <mã_key>\` : Nhập mã key sau khi vượt link\n` +
         `• \`/blike <uid>\` : Buff 200 like (Đổi 4 Coin)`;
 
-    if (ctx.from.id === ADMIN_ID) {
+    if (userId === ADMIN_ID) {
         menuText += `\n\n👑 **Lệnh Admin:**\n• \`/addcoin <id_tele> <số_coin>\``;
     }
 
     ctx.reply(menuText, { parse_mode: 'Markdown' });
 });
 
-// 2. Lệnh /getkey - Gửi link vượt link
-bot.command('getkey', (ctx) => {
+// 2. Lệnh /getkey: Tạo Key, lưu lên GAS và gửi thông tin cho khách
+bot.command('getkey', async (ctx) => {
     const userId = ctx.from.id;
     const userData = getUserData(userId);
-    const userName = ctx.from.username ? `@${ctx.from.username}` : ctx.from.first_name;
 
     if (userData.step >= 6) {
-        return ctx.reply(
-            `⚠️ **BẠN ĐÃ ĐẠT GIỚI HẠN TỐI ĐA (6/6 LẦN TRONG NGÀY)!**\n\n` +
-            `⏳ Vui lòng quay lại sau 24h để tiếp tục!`,
-            { parse_mode: 'Markdown' }
-        );
+        return ctx.reply("⚠️ Bạn đã đạt giới hạn tối đa 6/6 lần trong ngày!", { parse_mode: 'Markdown' });
     }
 
-    if (!userData.keyCreatedAt) {
-        userData.keyCreatedAt = Date.now();
-    }
-
-    const currentStep = userData.step;
-    const newKey = generateRandomCode();
-    userData.activeKey = newKey; 
-
-    const randomShortLink = listShortLinks[Math.floor(Math.random() * listShortLinks.length)];
-
-    const message =
-        `🔑 **LẤY KEY VƯỢT LINK (Lần ${currentStep + 1}/6)**\n\n` +
-        `👉 **Tài khoản:** ${userName}\n` +
-        `👉 **Tiến trình:** ${currentStep}/6\n\n` +
-        `⚠️ **Hướng dẫn:** Bấm nút bên dưới để vào trang vượt link lấy mã nhé!`;
-
-    ctx.reply(message, {
-        parse_mode: 'Markdown',
-        reply_markup: {
-            inline_keyboard: [
-                [{ text: "🌐 Mở Link Lấy Key Ngay", url: randomShortLink }],
-                [{ text: "🔄 Đổi Link Khác", callback_data: "doi_link" }]
-            ]
-        }
-    });
-});
-
-// Xử lý nút Đổi Link Khác
-bot.action('doi_link', async (ctx) => {
-    await ctx.answerCbQuery();
-    const userId = ctx.from.id;
-    const userData = getUserData(userId);
-    if (userData.step >= 6) return ctx.reply("⚠️ Bạn đã hoàn thành tối đa 6/6 lần!");
-
-    const newKey = generateRandomCode();
-    userData.activeKey = newKey;
-    const randomShortLink = listShortLinks[Math.floor(Math.random() * listShortLinks.length)];
-
-    await ctx.reply(
-        `🔄 **ĐÃ ĐỔI LINK XÁC THỰC MỚI (Lần ${userData.step + 1}/6)!**\n\n` +
-        `📌 Hãy bấm nút bên dưới để vượt link lấy mã mới nhé!`,
-        {
-            parse_mode: 'Markdown',
-            reply_markup: {
-                inline_keyboard: [
-                    [{ text: "🌐 Mở Link Lấy Key Ngay", url: randomShortLink }]
-                ]
-            }
-        }
-    );
-});
-
-// 3. Lệnh /nhapkey - Nhập key thủ công
-bot.command('nhapkey', async (ctx) => {
-    const userId = ctx.from.id;
-    const userData = getUserData(userId);
-    const input = ctx.message.text.split(' ');
-    const userEnteredKey = input[1];
-
-    if (!userEnteredKey) {
-        return ctx.reply("❌ Vui lòng nhập đúng cú pháp: `/nhapkey <mã_key>`", { parse_mode: 'Markdown' });
-    }
-
-    if (userData.step >= 6) {
-        return ctx.reply("⚠️ Bạn đã hoàn thành tối đa 6/6 lần trong ngày hôm nay rồi!");
-    }
-
-    if (userData.activeKey && userEnteredKey.trim().toUpperCase() === userData.activeKey.toUpperCase()) {
-        userData.status = '🟢';
-        userData.coin += 1; 
-        userData.activeKey = null; 
-        userData.step += 1; 
-        const completedStep = userData.step;
-
-        let nextStepInfo = completedStep < 6
-            ? `💡 *Tiến trình hiện tại: ${completedStep}/6. Gõ /getkey để lấy link tiếp theo.*`
-            : `🎉 **CHÚC MỪNG! Bạn đã hoàn thành tối đa 6/6 lần trong ngày hôm nay!**`;
-
-        return ctx.reply(
-            `🎉 **NHẬP KEY XÁC MINH THÀNH CÔNG (Lần ${completedStep}/6)!**\n\n` +
-            `🟢 Trạng thái: **Đã vượt link**\n` +
-            `🎁 Thưởng: **+1 Coin**\n` +
-            `💰 Tổng Coin: **${userData.coin}** Coin\n\n` +
-            nextStepInfo,
-            { parse_mode: 'Markdown' }
-        );
-    } else {
-        return ctx.reply("❌ Mã Key không chính xác, đã được sử dụng hoặc đã hết hạn!");
-    }
-});
-
-// 4. Lệnh /blike
-bot.command('blike', async (ctx) => {
-    const userId = ctx.from.id;
-    const userData = getUserData(userId);
-    const input = ctx.message.text.split(' ');
-    const gameUid = input[1];
-
-    if (!gameUid) {
-        return ctx.reply("❌ Vui lòng nhập đúng cú pháp: `/blike <UID_GAME>`", { parse_mode: 'Markdown' });
-    }
-
-    if (userData.status !== '🟢') {
-        return ctx.reply("🔴 Bạn chưa vượt link! Hãy gõ `/getkey` để hoàn thành vượt link trước.");
-    }
-
-    const requiredCoins = 4;
-    if (userData.coin < requiredCoins) {
-        return ctx.reply(`❌ Bạn không đủ Coin! Cần **${requiredCoins} Coin** để đổi 200 like (Hiện có: ${userData.coin} Coin).`);
-    }
-
-    const buffId = 'BUFF-' + Date.now();
-    pendingBuffs.set(buffId, {
-        userId: userId,
-        gameUid: gameUid,
-        requiredCoins: requiredCoins,
-        status: 'PENDING'
-    });
-
-    await ctx.reply(
-        `⏳ **ĐÃ GỬI YÊU CẦU BUFF LIKE TỚI ADMIN!**\n\n` +
-        `🎮 UID Game: \`${gameUid}\`\n` +
-        `📦 Gói: **200 Like** (Giá 4 Coin)\n` +
-        `📌 Đang chờ Admin kiểm tra.`,
-        { parse_mode: 'Markdown' }
-    );
+    const newKey = generateRandomKey();
 
     try {
-        const adminMessage =
-            `🔔 **YÊU CẦU BUFF LIKE CẦN DUYỆT!**\n\n` +
-            `👤 Người gửi: ${ctx.from.first_name} (@${ctx.from.username || 'N/A'})\n` +
-            `🆔 Telegram ID: \`${userId}\`\n` +
-            `🎮 **UID Game:** \`${gameUid}\`\n` +
-            `💰 Số dư: ${userData.coin} Coin\n` +
-            `⏰ Thời gian: ${new Date().toLocaleString('vi-VN')}`;
-        await bot.telegram.sendMessage(ADMIN_ID, adminMessage, {
+        // Gửi key lên Google Apps Script để lưu trữ
+        await axios.get(`${GAS_URL}?action=saveKey&userId=${userId}&key=${newKey}`);
+
+        // Link trỏ tạm ra trang hướng dẫn hoặc trang nhập key của mày (hoặc để link rút gọn thủ công của mày)
+        const dummyShortLink = "https://link4m.net/sb6B7"; // Hoặc link rút gọn của mày
+
+        const message =
+            `🔑 **LẤY KEY VƯỢT LINK (Lần ${userData.step + 1}/6)**\n\n` +
+            `🔑 **Mã Key của bạn:** \`${newKey}\`\n` +
+            `*(Hãy copy mã key này trước khi bấm vượt link)*\n\n` +
+            `👉 **Bước 1:** Bấm nút mở link để vượt qua trang rút gọn.\n` +
+            `👉 **Bước 2:** Vượt xong dán vào lệnh: \`/nhapkey ${newKey}\``;
+
+        ctx.reply(message, {
             parse_mode: 'Markdown',
             reply_markup: {
                 inline_keyboard: [
-                    [
-                        { text: "✅ Xác Nhận (Trừ 4 Coin)", callback_data: `approve_${buffId}` },
-                        { text: "❌ Từ Chối", callback_data: `reject_${buffId}` }
-                    ]
+                    [{ text: "🌐 Mở Link Lấy Key Ngay", url: dummyShortLink }]
                 ]
             }
         });
     } catch (error) {
-        console.error("Lỗi gửi thông báo Admin:", error.message);
+        console.error(error);
+        ctx.reply("❌ Lỗi kết nối hệ thống tạo key, vui lòng thử lại sau!");
     }
 });
 
-// Admin Duyệt / Từ Chối Buff
-bot.action(/^approve_(.+)$/, async (ctx) => {
-    await ctx.answerCbQuery();
-    if (ctx.from.id !== ADMIN_ID) return;
+// 3. Lệnh /nhapkey: Kiểm tra key từ GAS và cộng coin
+bot.command('nhapkey', async (ctx) => {
+    const userId = ctx.from.id;
+    const args = ctx.message.text.split(' ');
+    const inputKey = args[1];
 
-    const buffId = ctx.match[1];
-    const buffData = pendingBuffs.get(buffId);
-
-    if (!buffData || buffData.status !== 'PENDING') {
-        return ctx.editMessageText("⚠️ Đơn này đã được xử lý hoặc không tồn tại!");
+    if (!inputKey) {
+        return ctx.reply("⚠️ Vui lòng nhập đúng cú pháp: `/nhapkey <mã_key>`", { parse_mode: 'Markdown' });
     }
-
-    const targetUser = getUserData(buffData.userId);
-
-    if (targetUser.coin < buffData.requiredCoins) {
-        buffData.status = 'FAILED';
-        await ctx.editMessageText(`❌ **DUYỆT THẤT BẠI!** User không đủ coin.`, { parse_mode: 'Markdown' });
-        return;
-    }
-
-    targetUser.coin -= buffData.requiredCoins;
-    buffData.status = 'APPROVED';
-
-    await ctx.editMessageText(
-        `✅ **ĐÃ XÁC NHẬN BUFF LIKE THÀNH CÔNG!**\n\n` +
-        `🎮 UID Game: \`${buffData.gameUid}\`\n` +
-        `👤 User ID: \`${buffData.userId}\`\n` +
-        `📉 Đã trừ: **-${buffData.requiredCoins} Coin** (Còn lại: ${targetUser.coin} Coin)`,
-        { parse_mode: 'Markdown' }
-    );
 
     try {
-        await bot.telegram.sendMessage(
-            buffData.userId,
-            `🎉 **YÊU CẦU BUFF LIKE ĐÃ ĐƯỢC DUYỆT!**\n\n` +
-            `🎮 UID Game: \`${buffData.gameUid}\`\n` +
-            `📦 Gói: **200 Like**\n` +
-            `💰 Số Coin còn lại: **${targetUser.coin}** Coin\n` +
-            `🚀 Hệ thống đang tiến hành buff like cho bạn!`,
-            { parse_mode: 'Markdown' }
-        );
-    } catch (e) {}
+        const response = await axios.get(`${GAS_URL}?action=checkKey&key=${inputKey.trim()}`);
+        const resData = response.data;
+
+        if (resData.status === "success") {
+            const userData = getUserData(userId);
+            userData.coin += 1;
+            userData.step += 1;
+            userData.status = userData.step > 0 ? '🟢' : '🔴';
+
+            return ctx.reply(
+                `🎉 **XÁC NHẬN THÀNH CÔNG!**\n\n` +
+                `💰 Bạn được cộng: **+1 Coin**\n` +
+                `📊 Tiến trình hôm nay: **${userData.step}/6 lần**\n` +
+                `💳 Tổng Coin hiện tại: **${userData.coin} Coin**`,
+                { parse_mode: 'Markdown' }
+            );
+        } else if (resData.message === "used") {
+            return ctx.reply("❌ Mã Key này đã được sử dụng rồi!", { parse_mode: 'Markdown' });
+        } else {
+            return ctx.reply("❌ Mã Key không chính xác hoặc không tồn tại!", { parse_mode: 'Markdown' });
+        }
+    } catch (error) {
+        console.error(error);
+        ctx.reply("❌ Lỗi kiểm tra key từ máy chủ Google Apps Script!");
+    }
 });
 
-bot.action(/^reject_(.+)$/, async (ctx) => {
-    await ctx.answerCbQuery();
-    if (ctx.from.id !== ADMIN_ID) return;
+// 4. Lệnh /blike đổi coin
+bot.command('blike', (ctx) => {
+    const userId = ctx.from.id;
+    const userData = getUserData(userId);
+    const args = ctx.message.text.split(' ');
+    const targetUid = args[1];
 
-    const buffId = ctx.match[1];
-    const buffData = pendingBuffs.get(buffId);
-
-    if (!buffData || buffData.status !== 'PENDING') {
-        return ctx.editMessageText("⚠️ Đơn này đã được xử lý hoặc không tồn tại!");
+    if (!targetUid) {
+        return ctx.reply("⚠️ Vui lòng nhập đúng cú pháp: `/blike <uid_game>`", { parse_mode: 'Markdown' });
     }
 
-    buffData.status = 'REJECTED';
-    const targetUser = getUserData(buffData.userId);
-
-    await ctx.editMessageText(
-        `❌ **ĐÃ TỪ CHỐI YÊU CẦU BUFF!**\n\n` +
-        `🎮 UID Game lỗi: \`${buffData.gameUid}\``,
-        { parse_mode: 'Markdown' }
-    );
-
-    try {
-        await bot.telegram.sendMessage(
-            buffData.userId,
-            `❌ **YÊU CẦU BUFF LIKE BỊ TỪ CHỐI / LỖI UID!**\n\n` +
-            `💰 Coin của bạn **chưa bị trừ** (Hiện có: **${targetUser.coin}** Coin).`,
-            { parse_mode: 'Markdown' }
-        );
-    } catch (e) {}
-});
-
-// Lệnh cộng coin dành riêng cho Admin
-bot.command('addcoin', async (ctx) => {
-    if (ctx.from.id !== ADMIN_ID) return ctx.reply("⛔ Bạn không có quyền Admin!");
-
-    const input = ctx.message.text.split(' ');
-    const targetUserId = parseInt(input[1]);
-    const amount = parseInt(input[2]);
-
-    if (!targetUserId || isNaN(amount)) {
-        return ctx.reply("❌ **Sai cú pháp!** Nhập: `/addcoin <telegram_id> <số_coin>`", { parse_mode: 'Markdown' });
+    if (userData.coin < 4) {
+        return ctx.reply(`❌ Bạn không đủ Coin! Bạn đang có **${userData.coin} Coin**, cần tối thiểu **4 Coin** để buff.`, { parse_mode: 'Markdown' });
     }
 
-    const targetUserData = getUserData(targetUserId);
-    targetUserData.coin += amount;
-
-    await ctx.reply(
-        `✅ **CỘNG COIN THÀNH CÔNG!**\n\n` +
-        `👤 User ID: \`${targetUserId}\`\n` +
-        `➕ Thêm: **+${amount} Coin**\n` +
-        `💰 Tổng Coin: **${targetUserData.coin}** Coin`,
-        { parse_mode: 'Markdown' }
-    );
+    userData.coin -= 4; // Trừ 4 coin
+    ctx.reply(`✅ **ĐÃ GỬI YÊU CẦU BUFF!**\n\n🎮 UID: \`${targetUid}\`\n🎁 Gói: 200 Like\n💰 Số dư còn lại: **${userData.coin} Coin**`, { parse_mode: 'Markdown' });
 });
 
-// Khởi chạy bot
+// 5. Lệnh Admin /addcoin
+bot.command('addcoin', (ctx) => {
+    const userId = ctx.from.id;
+    if (userId !== ADMIN_ID) {
+        return ctx.reply("⚠️ Bạn không có quyền sử dụng lệnh này!");
+    }
+
+    const args = ctx.message.text.split(' ');
+    const targetId = parseInt(args[1]);
+    const amount = parseInt(args[2]);
+
+    if (!targetId || isNaN(amount)) {
+        return ctx.reply("⚠️ Sai cú pháp! Dùng: `/addcoin <id_tele> <số_coin>`", { parse_mode: 'Markdown' });
+    }
+
+    const targetData = getUserData(targetId);
+    targetData.coin += amount;
+
+    ctx.reply(`✅ Đã cộng thành công **${amount} Coin** cho user \`${targetId}\`. Tổng hiện tại: **${targetData.coin} Coin**`, { parse_mode: 'Markdown' });
+});
+
 bot.launch();
-console.log("Bot Telegram đã khởi động thành công và chạy ổn định!");
-
-// Web Server giữ cho Render không ngủ đông
-const http = require('http');
-const PORT = process.env.PORT || 3000;
-http.createServer((req, res) => {
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('Bot is running smooth 24/7!\n');
-}).listen(PORT, () => {
-    console.log(`Web server is listening on port ${PORT}`);
-});
+console.log("Bot Telegram đã khởi động thành công!");
