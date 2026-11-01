@@ -93,7 +93,7 @@ bot.start(async (ctx) => {
     ctx.reply(menuText, { parse_mode: 'Markdown' });
 });
 
-// 2. Lệnh /getkey - Gửi link vượt link (Đã ẩn Key)
+// 2. Lệnh /getkey - Gửi link vượt link
 bot.command('getkey', (ctx) => {
     const userId = ctx.from.id;
     const userData = getUserData(userId);
