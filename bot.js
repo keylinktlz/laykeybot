@@ -1,25 +1,24 @@
-const { Telegraf, Markup } = require('telegraf');
+const { Telegraf } = require('telegraf');
 
 // ==================== CẤU HÌNH THÔNG TIN ====================
-const BOT_TOKEN = '9001402578:AAFr0uRt9VnpngXyUTlSsqqchvNtuBqL9GQ'; // Token bot của mày
+const BOT_TOKEN = 'TOKEN_BOT_CUA_MAY_O_DAY'; // Thay token bot của mày vào đây
 const ADMIN_ID = 7827755950; // Telegram User ID của mày
 
-// Danh sách các link rút gọn (Link4m / Gtraffic) của mày
+// Danh sách các link rút gọn (Link4m / Gtraffic)
 const listShortLinks = [
     "https://link4m.org/RJWQ2YVy",
             "https://linkfree.click/s/key-nv2z1u19xrmvw898dc",
             "https://linkfree.click/s/key-nv3z1u19xrmvw89zfx",
-            "https://linkfree.click/s/key-nv4z1u19xrmvw8asdj",
+          "https://linkfree.click/s/key-nv4z1u19xrmvw8asdj",
             "https://gtraffic.io/aQA6TPH",
             "https://gtraffic.io/dm6PKQH"
+];
 
 const bot = new Telegraf(BOT_TOKEN);
 
-// Bộ nhớ tạm lưu trữ thông tin người dùng
-const users = new Map(); // userID -> { coin, status, activeKey, keyCreatedAt, step }
-const pendingBuffs = new Map(); // buffId -> { userId, gameUid, requiredCoins, status }
+const users = new Map();
+const pendingBuffs = new Map();
 
-// Hàm lấy dữ liệu user & tự động reset sau 24h
 function getUserData(userId) {
     if (!users.has(userId)) {
         users.set(userId, {
@@ -27,7 +26,7 @@ function getUserData(userId) {
             status: '🔴',
             activeKey: null,
             keyCreatedAt: null,
-            step: 0 // Đếm số lần hoàn thành (0 đến 6)
+            step: 0
         });
     }
     const data = users.get(userId);
@@ -42,18 +41,15 @@ function getUserData(userId) {
     return data;
 }
 
-// Hàm sinh mã ngẫu nhiên
 function generateRandomCode() {
     return 'KEY-' + Math.random().toString(36).substring(2, 10).toUpperCase();
 }
-
-// ==================== XỬ LÝ LỆNH BOT ====================
 
 // 1. Lệnh /start
 bot.start(async (ctx) => {
     const userId = ctx.from.id;
     const userData = getUserData(userId);
-    const payload = ctx.startPayload; // Nhận key nếu user bấm hoàn tất từ web
+    const payload = ctx.startPayload;
 
     if (payload) {
         if (userData.activeKey && payload === userData.activeKey && userData.step < 6) {
@@ -96,7 +92,7 @@ bot.start(async (ctx) => {
     ctx.reply(menuText, { parse_mode: 'Markdown' });
 });
 
-// 2. Lệnh /getkey - Gửi trực tiếp link Link4m/Gtraffic kèm Key cho người dùng
+// 2. Lệnh /getkey - Gửi trực tiếp link Link4m/Gtraffic kèm Key
 bot.command('getkey', (ctx) => {
     const userId = ctx.from.id;
     const userData = getUserData(userId);
@@ -118,7 +114,6 @@ bot.command('getkey', (ctx) => {
     const newKey = generateRandomCode();
     userData.activeKey = newKey;
 
-    // Chọn ngẫu nhiên 1 link rút gọn từ danh sách của mày
     const randomShortLink = listShortLinks[Math.floor(Math.random() * listShortLinks.length)];
 
     const message =
@@ -126,7 +121,7 @@ bot.command('getkey', (ctx) => {
         `👉 **Tài khoản:** ${userName}\n` +
         `👉 **Mã Key của bạn:** \`${newKey}\`\n` +
         `👉 **Tiến trình:** ${currentStep}/6\n\n` +
-        `⚠️ **Hướng dẫn:** Bấm nút bên dưới để vào trang rút gọn vượt link. Key của bạn đã được tích hợp sẵn hoặc hiển thị bên trong để hoàn tất!`;
+        `⚠️ **Hướng dẫn:** Bấm nút bên dưới để vào trang rút gọn vượt link lấy key nhé!`;
 
     ctx.reply(message, {
         parse_mode: 'Markdown',
@@ -139,7 +134,6 @@ bot.command('getkey', (ctx) => {
     });
 });
 
-// Nút Đổi Link Khác dự phòng
 bot.action('doi_link', async (ctx) => {
     await ctx.answerCbQuery();
     const userId = ctx.from.id;
@@ -165,7 +159,7 @@ bot.action('doi_link', async (ctx) => {
     );
 });
 
-// 3. Lệnh /blike - Gửi yêu cầu buff like
+// 3. Lệnh /blike
 bot.command('blike', async (ctx) => {
     const userId = ctx.from.id;
     const userData = getUserData(userId);
@@ -224,8 +218,6 @@ bot.command('blike', async (ctx) => {
         console.error("Lỗi gửi thông báo Admin:", error.message);
     }
 });
-
-// ==================== XỬ LÝ DUYỆT ĐƠN CỦA ADMIN ====================
 
 bot.action(/^approve_(.+)$/, async (ctx) => {
     await ctx.answerCbQuery();
