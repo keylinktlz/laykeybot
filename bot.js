@@ -1,7 +1,7 @@
 const { Telegraf } = require('telegraf');
 
 // ==================== CẤU HÌNH THÔNG TIN ====================
-const BOT_TOKEN = 'TOKEN_BOT_CUA_MAY_O_DAY'; // Thay token bot của mày vào đây
+const BOT_TOKEN = '9001402578:AAFr0uRt9VnpngXyUTlSsqqchvNtuBqL9GQ'; // Thay token bot của mày vào đây
 const ADMIN_ID = 7827755950; // Telegram User ID của mày
 
 // Danh sách các link rút gọn (Link4m / Linkfree / Gtraffic)
