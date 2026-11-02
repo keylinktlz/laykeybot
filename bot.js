@@ -3,7 +3,7 @@ const axios = require('axios');
 const http = require('http');
 
 const BOT_TOKEN = "9001402578:AAFr0uRt9VnpngXyUTlSsqqchvNtuBqL9GQ"; // Token bot của mày
-const ADMIN_ID = 782775950; // Telegram User ID của mày
+const ADMIN_ID = 782775950; // Telegram User ID của mày (dạng số)
 const GAS_URL = "https://script.google.com/macros/s/AKfycbwG5KQlG16FHiDgzWBr-CHTC5RFNt2IGIQVMdXMtnVWi6zBTEmozRUqcQnI4dllu2PeQw/exec"; // URL GAS của mày
 
 const bot = new Telegraf(BOT_TOKEN);
@@ -32,7 +32,8 @@ function generateRandomKey() {
 
 // 1. Lệnh /start
 bot.start((ctx) => {
-    const userId = ctx.from.id;
+    const userId = Number(ctx.from.id);
+    const adminIdNum = Number(ADMIN_ID);
     const userData = getUserData(userId);
 
     let menuText =
@@ -43,13 +44,19 @@ bot.start((ctx) => {
         `📜 **Danh sách lệnh:**\n` +
         `• \`/getkey\` : Lấy mã key vượt link nhận coin\n` +
         `• \`/nhapkey <mã_key>\` : Nhập mã key sau khi vượt link\n` +
-        `• \`/blike <uid>\` : Buff 200 like (Đổi 4 Coin)`;
+        `• \`/blike <uid>\` : Buff 200 like (Đổi 4 Coin)\n` +
+        `• \`/myid\` : Xem ID Telegram của bạn`;
 
-    if (userId === ADMIN_ID) {
+    if (userId === adminIdNum) {
         menuText += `\n\n👑 **Lệnh Admin:**\n• \`/addcoin <id_tele> <số_coin>\``;
     }
 
     ctx.reply(menuText, { parse_mode: 'Markdown' });
+});
+
+// Lệnh phụ check ID nhanh
+bot.command('myid', (ctx) => {
+    ctx.reply(`🆔 ID Telegram thật của mày là: \`${ctx.from.id}\``, { parse_mode: 'Markdown' });
 });
 
 // 2. Lệnh /getkey
@@ -134,7 +141,7 @@ bot.command('blike', (ctx) => {
     const targetUid = args[1];
 
     if (!targetUid) {
-        return ctx.reply("⚠️ Vuint lòng nhập đúng cú pháp: `/blike <uid_game>`", { parse_mode: 'Markdown' });
+        return ctx.reply("⚠️ Vui lòng nhập đúng cú pháp: `/blike <uid_game>`", { parse_mode: 'Markdown' });
     }
 
     if (userData.coin < 4) {
@@ -147,8 +154,10 @@ bot.command('blike', (ctx) => {
 
 // 5. Lệnh Admin /addcoin
 bot.command('addcoin', (ctx) => {
-    const userId = ctx.from.id;
-    if (userId !== ADMIN_ID) {
+    const userId = Number(ctx.from.id);
+    const adminIdNum = Number(ADMIN_ID);
+
+    if (userId !== adminIdNum) {
         return ctx.reply("⚠️ Bạn không có quyền sử dụng lệnh này!");
     }
 
