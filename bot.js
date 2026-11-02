@@ -3,7 +3,7 @@ const axios = require('axios');
 const http = require('http');
 
 const BOT_TOKEN = "9001402578:AAFr0uRt9VnpngXyUTlSsqqchvNtuBqL9GQ"; // Token bot của mày
-const ADMIN_ID = 782775950; // Telegram User ID của mày
+const ADMIN_ID ="782775950"; // Telegram User ID của mày
 const GAS_URL = "https://script.google.com/macros/s/AKfycbwG5KQlG16FHiDgzWBr-CHTC5RFNt2IGIQVMdXMtnVWi6zBTEmozRUqcQnI4dllu2PeQw/exec"; // URL GAS của mày
 
 const bot = new Telegraf(BOT_TOKEN);
