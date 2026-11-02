@@ -1,13 +1,13 @@
 const { Telegraf } = require('telegraf');
 const axios = require('axios');
+const http = require('http');
 
-const BOT_TOKEN = "9001402578:AAFr0uRt9VnpngXyUTlSsqqchvNtuBqL9GQ"; // Thay token bot của mày vào đây
+const BOT_TOKEN = "9001402578:AAFr0uRt9VnpngXyUTlSsqqchvNtuBqL9GQ"; // Token bot của mày
 const ADMIN_ID = 782775950; // Telegram User ID của mày
-const GAS_URL = "https://script.google.com/macros/s/AKfycbyLs0JbLy82nCIuIXXmTZUIih6QNw43u9nyWHAPCGzH-AxuXhKgEV2vuAuHalkjI9GS/exec"; // Thay URL GAS của mày vào đây
+const GAS_URL = "https://script.google.com/macros/s/AKfycbwG5KQlG16FHiDgzWBr-CHTC5RFNt2IGIQVMdXMtnVWi6zBTEmozRUqcQnI4dllu2PeQw/exec"; // URL GAS của mày
 
 const bot = new Telegraf(BOT_TOKEN);
 const users = new Map();
-const pendingBuffs = new Map();
 
 function getUserData(userId) {
     if (!users.has(userId)) {
@@ -52,7 +52,7 @@ bot.start((ctx) => {
     ctx.reply(menuText, { parse_mode: 'Markdown' });
 });
 
-// 2. Lệnh /getkey: Tạo Key, lưu lên GAS và gửi thông tin cho khách
+// 2. Lệnh /getkey
 bot.command('getkey', async (ctx) => {
     const userId = ctx.from.id;
     const userData = getUserData(userId);
@@ -64,11 +64,8 @@ bot.command('getkey', async (ctx) => {
     const newKey = generateRandomKey();
 
     try {
-        // Gửi key lên Google Apps Script để lưu trữ
         await axios.get(`${GAS_URL}?action=saveKey&userId=${userId}&key=${newKey}`);
-
-        // Link trỏ tạm ra trang hướng dẫn hoặc trang nhập key của mày (hoặc để link rút gọn thủ công của mày)
-        const dummyShortLink = "https://link4m.net/sb6B7"; // Hoặc link rút gọn của mày
+        const dummyShortLink = "https://link4m.net/sb6B7"; 
 
         const message =
             `🔑 **LẤY KEY VƯỢT LINK (Lần ${userData.step + 1}/6)**\n\n` +
@@ -91,7 +88,7 @@ bot.command('getkey', async (ctx) => {
     }
 });
 
-// 3. Lệnh /nhapkey: Kiểm tra key từ GAS và cộng coin
+// 3. Lệnh /nhapkey
 bot.command('nhapkey', async (ctx) => {
     const userId = ctx.from.id;
     const args = ctx.message.text.split(' ');
@@ -129,7 +126,7 @@ bot.command('nhapkey', async (ctx) => {
     }
 });
 
-// 4. Lệnh /blike đổi coin
+// 4. Lệnh /blike
 bot.command('blike', (ctx) => {
     const userId = ctx.from.id;
     const userData = getUserData(userId);
@@ -137,14 +134,14 @@ bot.command('blike', (ctx) => {
     const targetUid = args[1];
 
     if (!targetUid) {
-        return ctx.reply("⚠️ Vui lòng nhập đúng cú pháp: `/blike <uid_game>`", { parse_mode: 'Markdown' });
+        return ctx.reply("⚠️ Vuint lòng nhập đúng cú pháp: `/blike <uid_game>`", { parse_mode: 'Markdown' });
     }
 
     if (userData.coin < 4) {
         return ctx.reply(`❌ Bạn không đủ Coin! Bạn đang có **${userData.coin} Coin**, cần tối thiểu **4 Coin** để buff.`, { parse_mode: 'Markdown' });
     }
 
-    userData.coin -= 4; // Trừ 4 coin
+    userData.coin -= 4;
     ctx.reply(`✅ **ĐÃ GỬI YÊU CẦU BUFF!**\n\n🎮 UID: \`${targetUid}\`\n🎁 Gói: 200 Like\n💰 Số dư còn lại: **${userData.coin} Coin**`, { parse_mode: 'Markdown' });
 });
 
@@ -169,5 +166,15 @@ bot.command('addcoin', (ctx) => {
     ctx.reply(`✅ Đã cộng thành công **${amount} Coin** cho user \`${targetId}\`. Tổng hiện tại: **${targetData.coin} Coin**`, { parse_mode: 'Markdown' });
 });
 
+// Khởi chạy bot Telegram
 bot.launch();
 console.log("Bot Telegram đã khởi động thành công!");
+
+// Tạo một HTTP Server giả lập để qua mặt cơ chế quét Port của Render Web Service
+const PORT = process.env.PORT || 3000;
+http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('Bot is running!\n');
+}).listen(PORT, () => {
+    console.log(`HTTP Server đang lắng nghe trên cổng ${PORT}`);
+});
