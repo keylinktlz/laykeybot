@@ -3,138 +3,123 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Xác Thực Lấy Key Bot</title>
+    <title>Xác Thực Vượt Link - Free Fire</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background-color: #0f172a;
-            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0f172a;
+            color: #f8fafc;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
             margin: 0;
         }
-        .container {
-            text-align: center;
+        .card {
             background: #1e293b;
             padding: 30px;
             border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            text-align: center;
             max-width: 400px;
-            width: 90%;
+            width: 100%;
         }
-        h2 {
-            margin-bottom: 10px;
-            color: #38bdf8;
+        h2 { margin-bottom: 15px; color: #38bdf8; }
+        p { color: #94a3b8; font-size: 15px; line-height: 1.5; }
+        .spinner {
+            border: 4px solid rgba(255,255,255,0.1);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border-left-color: #38bdf8;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
         }
-        p {
-            color: #94a3b8;
-            font-size: 14px;
-            line-height: 1.5;
-        }
-        #countdown {
-            font-size: 48px;
-            font-weight: bold;
-            color: #f43f5e;
-            margin: 20px 0;
-        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .btn {
             display: inline-block;
-            background-color: #22c55e;
+            margin-top: 20px;
+            padding: 10px 20px;
+            background: #2563eb;
             color: white;
-            padding: 12px 24px;
             text-decoration: none;
             border-radius: 6px;
             font-weight: bold;
-            font-size: 16px;
-            border: none;
-            cursor: pointer;
-            transition: background 0.3s;
-            margin-top: 15px;
         }
-        .btn:hover {
-            background-color: #16a34a;
-        }
-        .key-box {
-            font-size: 18px;
-            font-weight: bold;
-            color: #22c55e;
-            background: #0f172a;
-            border: 2px dashed #22c55e;
-            padding: 12px;
-            margin: 15px 0;
-            border-radius: 8px;
-            word-break: break-all;
-        }
+        .btn:hover { background: #1d4ed8; }
     </style>
 </head>
 <body>
 
-    <div class="container" id="mainCard"></div>
+    <div class="card" id="content">
+        <h2>Đang Xác Thực...</h2>
+        <p id="status-text">Vui lòng đợi <span id="countdown" style="font-weight:bold; color:#38bdf8;">5</span> giây để hệ thống ghi nhận lượt vượt link.</p>
+        <div class="spinner" id="loading-spinner"></div>
+    </div>
 
     <script>
-        // Danh sách link rút gọn thực tế của mày (đảm bảo link đang sống và không bị lỗi 404)
-        const listLinks = [
-            "https://link4m.org/RJWQ2YVy",
-            "https://linkfree.click/s/key-nv2z1u19xrmvw898dc",
-            "https://linkfree.click/s/key-nv3z1u19xrmvw89zfx",
-            "https://linkfree.click/s/key-nv4z1u19xrmvw8asdj",
-            "https://gtraffic.io/aQA6TPH",
-            "https://gtraffic.io/dm6PKQH"
-        ];
-
         const urlParams = new URLSearchParams(window.location.search);
-        const userKey = urlParams.get('key');
-        const isDone = urlParams.get('status') === 'done';
-        const mainCard = document.getElementById('mainCard');
+        const userId = urlParams.get('userId');
+        const token = urlParams.get('token') || urlParams.get('key');
 
-        if (isDone && userKey) {
-            // Khi khách hoàn thành vượt link và quay về
-            mainCard.innerHTML = `
-                <h2 style="color: #22c55e;">🎉 XÁC THỰC THÀNH CÔNG!</h2>
-                <p>Đang tự động chuyển hướng về Telegram để cộng Coin...</p>
-                <div class="key-box">${userKey}</div>
-                <a href="https://t.me/tlzlike_bot?start=${userKey}" class="btn">🚀 VỀ BOT NGAY</a>
-            `;
-            setTimeout(() => {
-                window.location.href = `https://t.me/tlzlike_bot?start=${userKey}`;
-            }, 1200);
+        const cardEl = document.getElementById('content');
+        const statusTextEl = document.getElementById('status-text');
+        const spinnerEl = document.getElementById('loading-spinner');
+        const countdownEl = document.getElementById('countdown');
 
+        // Nếu truy cập trực tiếp không có tham số từ bot
+        if (!userId || !token) {
+            showSlotError();
         } else {
-            // Kiểm tra key từ bot truyền sang
-            if (!userKey) {
-                mainCard.innerHTML = `<h2>Lỗi!</h2><p>Vui lòng lấy link trực tiếp từ bot Telegram.</p>`;
-                throw new Error("Missing key");
-            }
-
-            // Giao diện đếm ngược 5 giây trước khi hiện nút chuyển hướng sang Link4m/Gtraffic
-            mainCard.innerHTML = `
-                <h2>Xác Thực Lấy Key</h2>
-                <p id="subText">Hệ thống đang chuẩn bị liên kết vượt link cho bạn...</p>
-                <div id="countdown">5</div>
-                <a id="getLinkBtn" class="btn" style="display: none;" href="#" target="_blank">👉 BẤM ĐỂ ĐẾN TRANG VƯỢT LINK</a>
-            `;
-
-            // Chọn ngẫu nhiên 1 link trong danh sách
-            const randomLink = listLinks[Math.floor(Math.random() * listLinks.length)];
-            const btnEl = document.getElementById('getLinkBtn');
-            btnEl.href = randomLink;
-
             let timeLeft = 5;
-            const countdownEl = document.getElementById('countdown');
-
             const timer = setInterval(() => {
                 timeLeft--;
-                countdownEl.textContent = timeLeft;
-                
-                if (timeLeft <= 0) {
+                if (timeLeft > 0) {
+                    countdownEl.innerText = timeLeft;
+                } else {
                     clearInterval(timer);
-                    countdownEl.style.display = 'none';
-                    document.getElementById('subText').textContent = 'Đã sẵn sàng! Nhấn nút bên dưới để bắt đầu vượt link:';
-                    btnEl.style.display = 'inline-block';
+                    verifyAndReward();
                 }
             }, 1000);
+        }
+
+        async function verifyAndReward() {
+            statusTextEl.innerText = "Đang gửi tín hiệu cộng coin về máy chủ...";
+
+            // Thay link GAS Web App của mày vào đây
+            const GAS_WEB_APP_URL = "YOUR_GAS_WEB_APP_URL_HERE"; 
+
+            try {
+                const response = await fetch(GAS_WEB_APP_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'verifyTokenKey',
+                        userId: userId,
+                        token: token
+                    })
+                });
+
+                spinnerEl.style.display = 'none';
+                cardEl.innerHTML = `
+                    <h2 style="color: #22c55e;">🎉 Thành Công!</h2>
+                    <p>Đã cộng <strong>+1 Coin</strong> vào tài khoản Telegram của bạn.</p>
+                    <p style="font-size: 13px; color: #64748b;">Bạn có thể tắt trang này và quay lại Bot Telegram.</p>
+                    <a href="https://t.me/TEN_BOT_CUA_MAY_BOT" class="btn">Quay lại Telegram</a>
+                `;
+            } catch (error) {
+                showSlotError();
+            }
+        }
+
+        function showSlotError() {
+            spinnerEl.style.display = 'none';
+            cardEl.innerHTML = `
+                <h2 style="color: #ef4444;">Thông Báo</h2>
+                <p>Hôm nay đã hết slot, quay lại 7h ngày mai.</p>
+                <a href="https://t.me/TEN_BOT_CUA_MAY_BOT" class="btn">Quay lại Telegram</a>
+            `;
         }
     </script>
 </body>
